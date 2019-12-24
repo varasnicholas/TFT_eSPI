@@ -43,8 +43,9 @@ tft.getSetup(user); //
 Serial.printf("\n[code]\n");
 
 Serial.print ("TFT_eSPI ver = " + user.version + "\n");
-Serial.printf("Processor    = ESP%i\n", user.esp, HEX);
-Serial.printf("Frequency    = %i MHz\n", ESP.getCpuFreqMHz());
+if (user.esp > 0x32F000 && user.esp < 0x32FFFF) Serial.printf("Processor    = STM%i\n", user.esp, HEX);
+else Serial.printf("Processor    = ESP%i\n", user.esp);
+if (user.esp < 0x32F000 || user.esp > 0x32FFFF) Serial.printf("Frequency    = %i MHz\n", ESP.getCpuFreqMHz());
 #ifdef ESP8266
 Serial.printf("Voltage      = %2.2f V\n", ESP.getVcc() / 918.0); // 918 empirically determined
 #endif

@@ -1,3 +1,16 @@
+# Test branch
+
+The library is in the process of being refactored to support other processors, in particular the STM32 series.
+
+The library is targetted at 32 bit processors but it will now run (slowly) on an UNO if the fonts are limited to GLCD. Performance on 8 bit and 16 bit processors will be poor due to lack of processor specific optimisation and the extensive use of 32 bit variable types.
+
+Summary:
+
+1. Added support for STM32 boards with SPI or 8 bit parallel displays
+2. Added STM32 targetted optimised drivers
+3. Added DMA for STM32F2xx/4xx/7xx when used with SPI displays
+
+Testing of the updates has been performed with STM32F446RE and STM32F767ZI Nucleo boards. Operation with other STM32 boards is not guaranteed.
 
 # News
 

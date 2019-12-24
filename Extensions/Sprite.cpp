@@ -92,16 +92,6 @@ void* TFT_eSprite::createSprite(int16_t w, int16_t h, uint8_t frames)
 
 
 /***************************************************************************************
-** Function name:           ~TFT_eSprite
-** Description:             Class destructor
-*************************************************************************************x*/
-TFT_eSprite::~TFT_eSprite()
-{
-  deleteSprite();
-}
-
-
-/***************************************************************************************
 ** Function name:           callocSprite
 ** Description:             Allocate a memory area for the Sprite and return pointer
 *************************************************************************************x*/
@@ -1148,7 +1138,7 @@ void TFT_eSprite::drawLine(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint3
 {
   if (!_created ) return;
 
-  boolean steep = abs(y1 - y0) > abs(x1 - x0);
+  bool steep = abs(y1 - y0) > abs(x1 - x0);
   if (steep) {
     swap_coord(x0, y0);
     swap_coord(x1, y1);
@@ -1492,7 +1482,7 @@ void TFT_eSprite::drawChar(int32_t x, int32_t y, uint16_t c, uint32_t color, uin
 #endif
 //>>>>>>>>>>>>>>>>>>
 
-  boolean fillbg = (bg != color);
+  bool fillbg = (bg != color);
 
   if ((size==1) && fillbg)
   {
