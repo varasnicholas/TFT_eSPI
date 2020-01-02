@@ -167,7 +167,7 @@
     //     DMA2_Stream3_IRQn and DMA2_Stream3_IRQHandler()
   #else
     // For STM32 processor with no tested DMA support yet
-    #define INIT_TFT_DATA_BUS spiHal.Instance = SPnI1
+    #define INIT_TFT_DATA_BUS spiHal.Instance = SPI1
   #endif
 
 #endif
