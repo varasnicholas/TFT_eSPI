@@ -5,10 +5,22 @@
 // STM32F767 55MHz SPI 227 fps with DMA
 // STM32F446 55MHz SPI 110 fps without DMA
 // STM32F446 55MHz SPI 187 fps with DMA
-// STM32F767 27.5MHz SPI  99 fps without DMA
-// STM32F767 27.5MHz SPI 120 fps with DMA
-// STM32F446 27MHz SPI 73 fps without DMA
-// STM32F446 27MHz SPI 97 fps with DMA
+// STM32F401 55MHz SPI  56 fps without DMA
+// STM32F401 55MHz SPI 120 fps with DMA
+
+// STM32F767 27MHz SPI  99 fps without DMA
+// STM32F767 27MHz SPI 120 fps with DMA
+// STM32F446 27MHz SPI  73 fps without DMA
+// STM32F446 27MHz SPI  97 fps with DMA
+// STM32F401 27MHz SPI  51 fps without DMA
+// STM32F401 27MHz SPI  90 fps with DMA
+
+// Blue Pill - 36MHz SPI *no* DMA 36 fps
+// Blue Pill - 36MHz SPI with DMA 67 fps
+// Blue Pill overclocked to 128MHz *no* DMA - 32MHz SPI  64 fps
+// Blue Pill overclocked to 128MHz with DMA - 32MHz SPI 116 fps
+
+#define OVERCLOCK_BLUE_PILL
 
 #define SCREENWIDTH 320
 #define SCREENHEIGHT 240
@@ -173,3 +185,45 @@ void loop() {
     }
   }
 }
+
+#ifdef OVERCLOCK_BLUE_PILL
+void SystemClock_Config(void) // Rename SystemClock_Config to over-ride board package settings
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInit;
+
+  /* Initializes the CPU, AHB and APB busses clocks */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  //RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;             // 72 MHz
+  //RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;            // 96 MHz
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL16;            // 128 MHz
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+    while (1);
+  }
+
+  /* Initializes the CPU, AHB and APB busses clocks */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK) {
+    while (1);
+  }
+
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC | RCC_PERIPHCLK_USB;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+    while (1);
+  }
+}
+#endif

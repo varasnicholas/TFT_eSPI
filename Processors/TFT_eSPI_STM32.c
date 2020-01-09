@@ -81,7 +81,7 @@ void TFT_eSPI::end_SDA_Read(void)
 ** Description:             Write a block of pixels of the same colour
 ***************************************************************************************/
 void TFT_eSPI::pushBlock(uint16_t color, uint32_t len){
-  // Loop unrolling improves speed dramtically grahics test  0.634s => 0.374s
+  // Loop unrolling improves speed dramtically graphics test  0.634s => 0.374s
   while (len>31) {
     // 32D macro writes 16 bits twice
     tft_Write_32D(color); tft_Write_32D(color);
@@ -330,63 +330,6 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len)
 #if defined STM32_DMA && !defined (TFT_PARALLEL_8_BIT) //       DMA FUNCTIONS
 ////////////////////////////////////////////////////////////////////////////////////////
 
-// The DMA functions here work with SPI only (not parallel)
-
-/***************************************************************************************
-** Function name:           DMA2_StreamX_IRQHandler
-** Description:             Override the default HAL stream 3 interrupt handler
-***************************************************************************************/
-extern "C" void DMA2_Stream3_IRQHandler();
-void DMA2_Stream3_IRQHandler()
-{
-  // Call the default end of buffer handler
-  HAL_DMA_IRQHandler(&dmaHal);
-}
-
-
-/***************************************************************************************
-** Function name:           initDMA
-** Description:             Initialise the DMA engine - returns true if init OK
-***************************************************************************************/
-// This initialisation is for STM32F2xx/4xx/7xx processors and may not work on others
-// Dual core H7xx series not supported yet, they are different and have a DMA MUX: 
-// https://electronics.stackexchange.com/questions/379813/configuring-the-dma-request-multiplexer-on-a-stm32h7-mcu
-bool TFT_eSPI::initDMA(void)
-{
-  __HAL_RCC_DMA2_CLK_ENABLE();                           // Enable DMA2 clock
-
-  dmaHal.Init.Channel = DMA_CHANNEL_3;                   // DMA channel 3 is for SPI1 TX
-  dmaHal.Init.Mode =  DMA_NORMAL; //DMA_CIRCULAR;   //   // Normal = send buffer once
-  dmaHal.Init.Direction = DMA_MEMORY_TO_PERIPH;          // Copy memory to the peripheral
-  dmaHal.Init.PeriphInc = DMA_PINC_DISABLE;              // Don't increment peripheral address
-  dmaHal.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE; // Peripheral is byte aligned
-  dmaHal.Init.MemInc = DMA_MINC_ENABLE;                  // Increment memory address
-  dmaHal.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;    // Memory is byte aligned
-
-  if (HAL_DMA_Init(&dmaHal) != HAL_OK){                  // Init DMA with settings
-    /* Insert error message here? */
-    return DMA_Enabled = false;
-  };
-
-  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);  // Enable DMA end interrupt handler
-
-  __HAL_LINKDMA(&spiHal, hdmatx, dmaHal); // Attach DMA engine to SPI peripheral
-
-  return DMA_Enabled = true;
-}
-
-
-/***************************************************************************************
-** Function name:           deInitDMA
-** Description:             Disconnect the DMA engine from SPI
-***************************************************************************************/
-void TFT_eSPI::deInitDMA(void)
-{
-  HAL_DMA_DeInit(&dmaHal);
-  DMA_Enabled = false;
-}
-
-
 /***************************************************************************************
 ** Function name:           dmaBusy
 ** Description:             Check if DMA is busy (usefully non-blocking!)
@@ -395,8 +338,8 @@ void TFT_eSPI::deInitDMA(void)
 // or  "while( tft.dmaBusy() ) {Do-something-useful;}"
 bool TFT_eSPI::dmaBusy(void)
 {
-  return (dmaHal.State == HAL_DMA_STATE_BUSY);    // SPI may still be busy
-  // return (spiHal.State == HAL_SPI_STATE_BUSY_TX); // Check if SPI is busy
+  //return (dmaHal.State == HAL_DMA_STATE_BUSY);  // Do not use, SPI may still be busy
+  return (spiHal.State == HAL_SPI_STATE_BUSY_TX); // Check if SPI Tx is busy
 }
 
 
@@ -415,9 +358,6 @@ void TFT_eSPI::pushPixelsDMA(uint16_t* image, uint32_t len)
   if(_swapBytes) {
     for (uint32_t i = 0; i < len; i++) (image[i] = image[i] << 8 | image[i] >> 8);
   }
-
-  // Wait for any current SPI transaction to end
-  // while (spiHal.State == HAL_SPI_STATE_BUSY_TX);
 
   HAL_SPI_Transmit_DMA(&spiHal, (uint8_t*)image, len << 1);
 }
@@ -494,6 +434,109 @@ void TFT_eSPI::pushImageDMA(int32_t x, int32_t y, int32_t w, int32_t h, uint16_t
   // Send remaining pixels using DMA (max 65534 bytes)
   HAL_SPI_Transmit_DMA(&spiHal, (uint8_t*)buffer, len << 1);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Processor specific DMA initialisation
+////////////////////////////////////////////////////////////////////////////////////////
+
+// The DMA functions here work with SPI only (not parallel)
+#if defined (STM32F2xx) || defined (STM32F4xx) || defined (STM32F7xx)
+/***************************************************************************************
+** Function name:           DMA2_StreamX_IRQHandler
+** Description:             Override the default HAL stream 3 interrupt handler
+***************************************************************************************/
+extern "C" void DMA2_Stream3_IRQHandler();
+void DMA2_Stream3_IRQHandler()
+{
+  // Call the default end of buffer handler
+  HAL_DMA_IRQHandler(&dmaHal);
+}
+
+/***************************************************************************************
+** Function name:           initDMA
+** Description:             Initialise the DMA engine - returns true if init OK
+***************************************************************************************/
+// This initialisation is for STM32F2xx/4xx/7xx processors and may not work on others
+// Dual core H7xx series not supported yet, they are different and have a DMA MUX: 
+// https://electronics.stackexchange.com/questions/379813/configuring-the-dma-request-multiplexer-on-a-stm32h7-mcu
+bool TFT_eSPI::initDMA(void)
+{
+  __HAL_RCC_DMA2_CLK_ENABLE();                           // Enable DMA2 clock
+
+  dmaHal.Init.Channel = DMA_CHANNEL_3;                   // DMA channel 3 is for SPI1 TX
+  dmaHal.Init.Mode =  DMA_NORMAL; //DMA_CIRCULAR;   //   // Normal = send buffer once
+  dmaHal.Init.Direction = DMA_MEMORY_TO_PERIPH;          // Copy memory to the peripheral
+  dmaHal.Init.PeriphInc = DMA_PINC_DISABLE;              // Don't increment peripheral address
+  dmaHal.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE; // Peripheral is byte aligned
+  dmaHal.Init.MemInc = DMA_MINC_ENABLE;                  // Increment memory address
+  dmaHal.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;    // Memory is byte aligned
+
+  if (HAL_DMA_Init(&dmaHal) != HAL_OK){                  // Init DMA with settings
+    // Insert error message here?
+    return DMA_Enabled = false;
+  };
+
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);  // Enable DMA end interrupt handler
+
+  __HAL_LINKDMA(&spiHal, hdmatx, dmaHal); // Attach DMA engine to SPI peripheral
+
+  return DMA_Enabled = true;
+}
+
+#elif defined (STM32F1xx) // Supports "Blue Pill" boards
+/***************************************************************************************
+** Function name:           DMA1_ChannelX_IRQHandler
+** Description:             Override the default HAL stream 3 interrupt handler
+***************************************************************************************/
+extern "C" void DMA1_Channel3_IRQHandler();
+
+void DMA1_Channel3_IRQHandler()
+{
+  // Call the default end of buffer handler
+  HAL_DMA_IRQHandler(&dmaHal);
+}
+//*/
+/***************************************************************************************
+** Function name:           initDMA
+** Description:             Initialise the DMA engine - returns true if init OK
+***************************************************************************************/
+bool TFT_eSPI::initDMA(void)
+{
+  __HAL_RCC_DMA1_CLK_ENABLE();                           // Enable DMA2 clock
+
+  dmaHal.Init.Mode =  DMA_NORMAL; //DMA_CIRCULAR;   //   // Normal = send buffer once
+  dmaHal.Init.Direction = DMA_MEMORY_TO_PERIPH;          // Copy memory to the peripheral
+  dmaHal.Init.PeriphInc = DMA_PINC_DISABLE;              // Don't increment peripheral address
+  dmaHal.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE; // Peripheral is byte aligned
+  dmaHal.Init.MemInc = DMA_MINC_ENABLE;                  // Increment memory address
+  dmaHal.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;    // Memory is byte aligned
+  dmaHal.Init.Priority = DMA_PRIORITY_LOW;               // Added this line - needed ?
+
+  __HAL_LINKDMA(&spiHal, hdmatx, dmaHal); // Attach DMA engine to SPI peripheral
+
+  if (HAL_DMA_Init(&dmaHal) != HAL_OK){                  // Init DMA with settings
+    // Insert error message here?
+    return DMA_Enabled = false;
+  };
+
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);  // Enable DMA end interrupt handler
+
+
+  return DMA_Enabled = true;
+}
+#endif // End of STM32F1/2/4/7xx
+
+/***************************************************************************************
+** Function name:           deInitDMA
+** Description:             Disconnect the DMA engine from SPI
+***************************************************************************************/
+void TFT_eSPI::deInitDMA(void)
+{
+  HAL_DMA_DeInit(&dmaHal);
+  DMA_Enabled = false;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 #endif // End of DMA FUNCTIONS    
 ////////////////////////////////////////////////////////////////////////////////////////

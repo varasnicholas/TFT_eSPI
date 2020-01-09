@@ -122,23 +122,23 @@
   #define tft_Write_8(C)   spi.transfer(C)
 
   // Convert 16 bit colour to 18 bit and write in 3 bytes
-  #define tft_Write_16(C)  spi.transfer((C & 0xF800)>>8); \
-                           spi.transfer((C & 0x07E0)>>3); \
-                           spi.transfer((C & 0x001F)<<3)
+  #define tft_Write_16(C)  spi.transfer(((C) & 0xF800)>>8); \
+                           spi.transfer(((C) & 0x07E0)>>3); \
+                           spi.transfer(((C) & 0x001F)<<3)
 
   // Convert swapped byte 16 bit colour to 18 bit and write in 3 bytes
-  #define tft_Write_16S(C) spi.transfer(C & 0xF8); \
-                           spi.transfer((C & 0xE000)>>11 | (C & 0x07)<<5); \
-                           spi.transfer((C & 0x1F00)>>5)
+  #define tft_Write_16S(C) spi.transfer((C) & 0xF8); \
+                           spi.transfer(((C) & 0xE000)>>11 | ((C) & 0x07)<<5); \
+                           spi.transfer(((C) & 0x1F00)>>5)
 
   // Write 32 bits to TFT
   #define tft_Write_32(C)  spi.write32(C)
 
   // Write two address coordinates
-  #define tft_Write_32C(C,D) spi.write32(C<<16 | D)
+  #define tft_Write_32C(C,D) spi.write32((C)<<16 | (D))
   
   // Write same value twice
-  #define tft_Write_32D(C) spi.write32(C<<16 | C)
+  #define tft_Write_32D(C) spi.write32((C)<<16 | (C))
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Macros to write commands/pixel colour data to an Raspberry Pi TFT
@@ -155,9 +155,9 @@
   SPI1CMD |= SPIBUSY; \
   while(SPI1CMD & SPIBUSY) {}
 
-  #define tft_Write_8(C)     TFT_WRITE_BITS((uint16_t)C<<8, CMD_BITS)
+  #define tft_Write_8(C)     TFT_WRITE_BITS((uint16_t)(C)<<8, CMD_BITS)
 
-  #define tft_Write_16(C)    TFT_WRITE_BITS(C>>8 | C<<8, 16)
+  #define tft_Write_16(C)    TFT_WRITE_BITS((C)>>8 | (C)<<8, 16)
 
   #define tft_Write_16S(C)   TFT_WRITE_BITS(C, 16)
 
@@ -180,13 +180,13 @@
 
   #define tft_Write_8(C) \
   SPI1U1 = (CMD_BITS << SPILMOSI) | (CMD_BITS << SPILMISO); \
-  SPI1W0 = C<<(CMD_BITS + 1 - 8); \
+  SPI1W0 = (C)<<(CMD_BITS + 1 - 8); \
   SPI1CMD |= SPIBUSY; \
   while(SPI1CMD & SPIBUSY) {;}
 
   #define tft_Write_16(C) \
   SPI1U1 = (15 << SPILMOSI) | (15 << SPILMISO); \
-  SPI1W0 = (C<<8 | C>>8); \
+  SPI1W0 = ((C)<<8 | (C)>>8); \
   SPI1CMD |= SPIBUSY; \
   while(SPI1CMD & SPIBUSY) {;}
 
@@ -204,13 +204,13 @@
 
   #define tft_Write_32C(C,D) \
   SPI1U1 = (31 << SPILMOSI) | (31 << SPILMISO); \
-  SPI1W0 = (D>>8 | D<<8)<<16 | (C>>8 | C<<8); \
+  SPI1W0 = ((D)>>8 | (D)<<8)<<16 | ((C)>>8 | (C)<<8); \
   SPI1CMD |= SPIBUSY; \
   while(SPI1CMD & SPIBUSY) {;}
 
   #define tft_Write_32D(C) \
   SPI1U1 = (31 << SPILMOSI) | (31 << SPILMISO); \
-  SPI1W0 = (C>>8 | C<<8)<<16 | (C>>8 | C<<8); \
+  SPI1W0 = ((C)>>8 | (C)<<8)<<16 | ((C)>>8 | (C)<<8); \
   SPI1CMD |= SPIBUSY; \
   while(SPI1CMD & SPIBUSY) {;}
 

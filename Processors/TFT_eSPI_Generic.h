@@ -90,16 +90,16 @@
   #define tft_Write_8(C)   spi.transfer(C)
 
   // Convert 16 bit colour to 18 bit and write in 3 bytes
-  #define tft_Write_16(C)  spi.transfer((C & 0xF800)>>8); \
-                           spi.transfer((C & 0x07E0)>>3); \
-                           spi.transfer((C & 0x001F)<<3)
+  #define tft_Write_16(C)  spi.transfer(((C) & 0xF800)>>8); \
+                           spi.transfer(((C) & 0x07E0)>>3); \
+                           spi.transfer(((C) & 0x001F)<<3)
 
   // Convert swapped byte 16 bit colour to 18 bit and write in 3 bytes
-  #define tft_Write_16S(C) spi.transfer(C & 0xF8); \
-                           spi.transfer((C & 0xE000)>>11 | (C & 0x07)<<5); \
-                           spi.transfer((C & 0x1F00)>>5)
+  #define tft_Write_16S(C) spi.transfer((C) & 0xF8); \
+                           spi.transfer(((C) & 0xE000)>>11 | ((C) & 0x07)<<5); \
+                           spi.transfer(((C) & 0x1F00)>>5)
   // Write 32 bits to TFT
-  #define tft_Write_32(C)  spi.transfer(C>>16); spi.transfer((uint16_t)C)
+  #define tft_Write_32(C)  spi.transfer16((C)>>16); spi.transfer16((uint16_t)(C))
 
   // Write two address coordinates
   #define tft_Write_32C(C,D) spi.transfer16(C); spi.transfer16(D)
@@ -116,18 +116,18 @@
   #else
     #ifdef __AVR__ // AVR processors do not have 16 bit transfer
       #define tft_Write_8(C)   {SPDR=(C); while (!(SPSR&_BV(SPIF)));}
-      #define tft_Write_16(C)  tft_Write_8((uint8_t) (C>>8));tft_Write_8((uint8_t) (C>>0))
-      #define tft_Write_16S(C) tft_Write_8((uint8_t) (C>>0));tft_Write_8((uint8_t) (C>>8))
+      #define tft_Write_16(C)  tft_Write_8((uint8_t)((C)>>8));tft_Write_8((uint8_t)((C)>>0))
+      #define tft_Write_16S(C) tft_Write_8((uint8_t)((C)>>0));tft_Write_8((uint8_t)((C)>>8))
     #else
       #define tft_Write_8(C)   spi.transfer(C)
       #define tft_Write_16(C)  spi.transfer16(C)
-      #define tft_Write_16S(C) spi.transfer16(C>>8)
+      #define tft_Write_16S(C) spi.transfer16(((C)>>8) | ((C)<<8))
     #endif // AVR    
   #endif // RPI_ILI9486_DRIVER
 
   #define tft_Write_32(C) \
-  tft_Write_16((uint16_t) (C>>16)); \
-  tft_Write_16((uint16_t) (C>>0))
+  tft_Write_16((uint16_t) ((C)>>16)); \
+  tft_Write_16((uint16_t) ((C)>>0))
 
   #define tft_Write_32C(C,D) \
   tft_Write_16((uint16_t) (C)); \

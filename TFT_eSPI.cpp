@@ -10,7 +10,7 @@
   size.
 
   Created by Bodmer 2/12/16
-  Bodmer: Added RPi 16 bit display support
+  Last update by Bodmer 27/12/19
  ****************************************************/
 
 
@@ -329,23 +329,22 @@ void TFT_eSPI::init(uint8_t tc)
 
     INIT_TFT_DATA_BUS;
 
-#if defined(TFT_PARALLEL_8_BIT)
-    digitalWrite(TFT_CS, LOW); // Chip select low permanently
-    pinMode(TFT_CS, OUTPUT);
-#else
-  #ifdef TFT_CS
-    // Set to output once again in case D6 (MISO) is used for CS
-    digitalWrite(TFT_CS, HIGH); // Chip select high (inactive)
-    pinMode(TFT_CS, OUTPUT);
-  #else
-    spi.setHwCs(1); // Use hardware SS toggling
-  #endif
+
+
+#ifdef TFT_CS
+  // Set to output once again in case D6 (MISO) is used for CS
+  pinMode(TFT_CS, OUTPUT);
+  digitalWrite(TFT_CS, HIGH); // Chip select high (inactive)
+#elif defined (ESP8266) && !defined (TFT_PARALLEL_8_BIT)
+  spi.setHwCs(1); // Use hardware SS toggling
 #endif
+
+
 
   // Set to output once again in case D6 (MISO) is used for DC
 #ifdef TFT_DC
-    digitalWrite(TFT_DC, HIGH); // Data/Command high = data mode
     pinMode(TFT_DC, OUTPUT);
+    digitalWrite(TFT_DC, HIGH); // Data/Command high = data mode
 #endif
 
     _booted = false;
@@ -432,13 +431,13 @@ void TFT_eSPI::init(uint8_t tc)
   setRotation(rotation);
 
 #if defined (TFT_BL) && defined (TFT_BACKLIGHT_ON)
-  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
   pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, TFT_BACKLIGHT_ON);
 #else
   #if defined (TFT_BL) && defined (M5STACK)
     // Turn on the back-light LED
-    digitalWrite(TFT_BL, HIGH);
     pinMode(TFT_BL, OUTPUT);
+    digitalWrite(TFT_BL, HIGH);
   #endif
 #endif
 }
@@ -1902,6 +1901,29 @@ void TFT_eSPI::drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w
   spi_end();              // Does nothing if Sprite class uses this function
 }
 
+
+/***************************************************************************************
+** Function name:           drawBitmap
+** Description:             Draw an image stored in an array on the TFT
+***************************************************************************************/
+void TFT_eSPI::drawBitmap(int16_t x, int16_t y, const uint8_t *bitmap, int16_t w, int16_t h, uint16_t fgcolor, uint16_t bgcolor)
+{
+  //spi_begin();          // Sprite class can use this function, avoiding spi_begin()
+  inTransaction = true;
+
+  int32_t i, j, byteWidth = (w + 7) / 8;
+
+  for (j = 0; j < h; j++) {
+    for (i = 0; i < w; i++ ) {
+      if (pgm_read_byte(bitmap + j * byteWidth + i / 8) & (128 >> (i & 7)))
+           drawPixel(x + i, y + j, fgcolor);
+      else drawPixel(x + i, y + j, bgcolor);
+    }
+  }
+
+  inTransaction = false;
+  spi_end();              // Does nothing if Sprite class uses this function
+}
 
 /***************************************************************************************
 ** Function name:           drawXBitmap

@@ -33,7 +33,7 @@
   //            5 4 3 2 1 0                Extra low periods
   //        xxxx=======================xxxx
   //         |<---------- twc --------->|
-  //           |<- tdst ->|<-- tdht --->|
+  //           |<- tdst ->|<-- tdht -->|
   //
   // Data is placed bit by bit on bus during period xxxx and TFT_WR driven low
   // Period xxxx depends on D0-D7 pin allocations and bit manipulation needed
@@ -52,12 +52,7 @@
     #elif defined (STM32F7xx)
       #define WR_TWRL_1       //Tested with STM32F767
     #else
-      //#define WR_TWRL_0     // Fastest
-      //#define WR_TWRL_1
-      //#define WR_TWRL_2
-      //#define WR_TWRL_3
-      //#define WR_TWRL_4
-      #define WR_TWRL_5       // Slowest
+      #define WR_TWRL_5
     #endif
 
     // Extra write pulse high time (data hold time, delays next write cycle start)
@@ -115,40 +110,21 @@
   #else // Default display slow settings
 
     // Extra write pulse low time (delay for data setup)
-    #if defined (STM32F2xx) || defined (STM32F4xx)
-      //#define WR_TWRL_0       // Tested with STM32F446 - 27.6MHz
-      //#define WR_TWRL_1
-      //#define WR_TWRL_2
-      #define WR_TWRL_3     // STM32F446 - 15.6MHz when WR_TWRH_3 defined as well
-    #elif defined (STM32F7xx)
-      //#define WR_TWRL_0
-      //#define WR_TWRL_1
-      //#define WR_TWRL_2
-      #define WR_TWRL_3       //Tested with STM32F446
-    #else
-      //#define WR_TWRH_0
-      //#define WR_TWRH_1
-      //#define WR_TWRH_2
-      #define WR_TWRH_3
-    #endif
+    //#define WR_TWRL_0
+    //#define WR_TWRL_1
+    //#define WR_TWRL_2
+    //#define WR_TWRL_3
+    //#define WR_TWRL_4
+    #define WR_TWRL_5
 
     // Extra write pulse high time (data hold time, delays next write cycle start)
-    #if defined (STM32F2xx) || defined (STM32F4xx)
-      //#define WR_TWRH_0       // Tested with STM32F446
-      //#define WR_TWRH_1
-      //#define WR_TWRH_2
-      #define WR_TWRH_3
-    #elif defined (STM32F7xx)
-      //#define WR_TWRH_0       //Tested with STM32F767
-      //#define WR_TWRH_1
-      //#define WR_TWRH_2
-      #define WR_TWRH_3
-    #else
-      //#define WR_TWRH_0
-      //#define WR_TWRH_1
-      //#define WR_TWRH_2
-      #define WR_TWRH_3
-    #endif
+    //#define WR_TWRH_0
+    //#define WR_TWRH_1
+    //#define WR_TWRH_2
+    //#define WR_TWRH_3
+    //#define WR_TWRH_4
+    #define WR_TWRH_5
+
   #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -165,8 +141,13 @@
     // The DMA hard-coding for SPI1 is in TFT_eSPI_STM32.c as follows:
     //     DMA_CHANNEL_3 
     //     DMA2_Stream3_IRQn and DMA2_Stream3_IRQHandler()
+  #elif defined (STM32F1xx)
+    // For Blue Pill and STM32F1xx processors with DMA support
+    #define STM32_DMA // DMA is available with these processors
+    #define INIT_TFT_DATA_BUS spiHal.Instance = SPI1; \
+                              dmaHal.Instance = DMA1_Channel3
   #else
-    // For STM32 processor with no tested DMA support yet
+    // For STM32 processor with no implemented DMA support (yet)
     #define INIT_TFT_DATA_BUS spiHal.Instance = SPI1
   #endif
 
@@ -205,7 +186,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 // Define the CS (TFT chip select) pin drive code
 ////////////////////////////////////////////////////////////////////////////////////////
-#if !defined (TFT_CS) || (TFT_CS < 0) || defined (TFT_PARALLEL_8_BIT)
+#if !defined (TFT_CS) || (TFT_CS < 0)
   #define CS_L // No macro allocated so it generates no code
   #define CS_H // No macro allocated so it generates no code
 #else
@@ -696,10 +677,10 @@
                            WR_H
 
     // Write 16 bits to TFT
-    #define tft_Write_16(C) tft_Write_8(C>>8); tft_Write_8(C)
+    #define tft_Write_16(C) tft_Write_8((C)>>8); tft_Write_8(C)
 
     // 16 bit write with swapped bytes
-    #define tft_Write_16S(C) tft_Write_8(C); tft_Write_8(C>>8)
+    #define tft_Write_16S(C) tft_Write_8(C); tft_Write_8((C)>>8)
 
   #endif // End of parallel/Nucleo 64/144 selections
 
@@ -724,27 +705,27 @@
 
   // Convert 16 bit colour to 18 bit and write in 3 bytes
   #define tft_Write_16(C) \
-  { spiBuffer[0] = (C & 0xF800)>>8; spiBuffer[1] = (C & 0x07E0)>>3; spiBuffer[2] = (C & 0x001F)<<3; \
+  { spiBuffer[0] = ((C) & 0xF800)>>8; spiBuffer[1] = ((C) & 0x07E0)>>3; spiBuffer[2] = ((C) & 0x001F)<<3; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 3, 10); }
 
   // Convert swapped byte 16 bit colour to 18 bit and write in 3 bytes
   #define tft_Write_16S(C) \
-  { spiBuffer[0] = C & 0xF8; spiBuffer[1] = (C & 0xE000)>>11 | (C & 0x07)<<5; spiBuffer[2] = (C & 0x1F00)>>5; \
+  { spiBuffer[0] = (C) & 0xF8; spiBuffer[1] = ((C) & 0xE000)>>11 | ((C) & 0x07)<<5; spiBuffer[2] = ((C) & 0x1F00)>>5; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 3, 10); }
 
   // Write 32 bits to TFT
   #define tft_Write_32(C) \
-  { spiBuffer[0] = C>>24; spiBuffer[1] = C>>16; spiBuffer[2] = C>>8; spiBuffer[3] = C; \
+  { spiBuffer[0] = (C)>>24; spiBuffer[1] = (C)>>16; spiBuffer[2] = (C)>>8; spiBuffer[3] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 4, 10); }
 
   // Write two address coordinates
   #define tft_Write_32C(C,D) \
-  { spiBuffer[0] = C>>8; spiBuffer[1] = C; spiBuffer[2] = D>>8; spiBuffer[3] = D; \
+  { spiBuffer[0] = (C)>>8; spiBuffer[1] = C; spiBuffer[2] = (D)>>8; spiBuffer[3] = D; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 4, 10); }
 
   // Write same value twice
   #define tft_Write_32D(C) \
-  { spiBuffer[0] = spiBuffer[2] = C>>8; spiBuffer[1] = spiBuffer[3] = C; \
+  { spiBuffer[0] = spiBuffer[2] = (C)>>8; spiBuffer[1] = spiBuffer[3] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 4, 10); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -757,23 +738,23 @@
   HAL_SPI_Transmit(&spiHal, spiBuffer, 2, 10); }
 
   #define tft_Write_16(C) \
-  { spiBuffer[0] = C>>8; spiBuffer[1] = C; \
+  { spiBuffer[0] = (C)>>8; spiBuffer[1] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 2, 10); }
 
   #define tft_Write_16S(C) \
-  { spiBuffer[0] = C; spiBuffer[1] = C>>8; \
+  { spiBuffer[0] = C; spiBuffer[1] = (C)>>8; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 2, 10); }
 
   #define tft_Write_32(C) \
-  { spiBuffer[1] = (C>>24); spiBuffer[3] = (C>>16); spiBuffer[5] = (C>>8); spiBuffer[7] = (C>>0); \
+  { spiBuffer[1] = ((C)>>24); spiBuffer[3] = ((C)>>16); spiBuffer[5] = ((C)>>8); spiBuffer[7] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 8, 10); }
 
   #define tft_Write_32C(C,D) \
-  { spiBuffer[1] = (C>>8); spiBuffer[3] = (C); spiBuffer[5] = (D>>8); spiBuffer[7] = (D); \
+  { spiBuffer[1] = ((C)>>8); spiBuffer[3] = (C); spiBuffer[5] = ((D)>>8); spiBuffer[7] = D; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 8, 10); }
 
   #define tft_Write_32D(C) \
-  { spiBuffer[1] = (C>>8); spiBuffer[3] = (C); spiBuffer[5] = (C>>8); spiBuffer[7] = (C); \
+  { spiBuffer[1] = ((C)>>8); spiBuffer[3] = (C); spiBuffer[5] = ((C)>>8); spiBuffer[7] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 8, 10); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -786,23 +767,23 @@
   HAL_SPI_Transmit(&spiHal, spiBuffer, 1, 10); }
 
   #define tft_Write_16(C) \
-  { spiBuffer[0] = C>>8; spiBuffer[1] = C; \
+  { spiBuffer[0] = (C)>>8; spiBuffer[1] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 2, 10); }
 
   #define tft_Write_16S(C) \
-  { spiBuffer[0] = C; spiBuffer[1] = C>>8; \
+  { spiBuffer[0] = C; spiBuffer[1] = (C)>>8; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 2, 10); }
 
   #define tft_Write_32(C) \
-  { spiBuffer[0] = C>>24; spiBuffer[1] = C>>16; spiBuffer[2] = C>>8; spiBuffer[3] = C; \
+  { spiBuffer[0] = (C)>>24; spiBuffer[1] = (C)>>16; spiBuffer[2] = (C)>>8; spiBuffer[3] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 4, 10); }
 
   #define tft_Write_32C(C,D) \
-  { spiBuffer[0] = C>>8; spiBuffer[1] = C; spiBuffer[2] = D>>8; spiBuffer[3] = D; \
+  { spiBuffer[0] = (C)>>8; spiBuffer[1] = C; spiBuffer[2] = (D)>>8; spiBuffer[3] = D; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 4, 10); }
 
   #define tft_Write_32D(C) \
-  { spiBuffer[0] = spiBuffer[2] = C>>8; spiBuffer[1] = spiBuffer[3] = C; \
+  { spiBuffer[0] = spiBuffer[2] = (C)>>8; spiBuffer[1] = spiBuffer[3] = C; \
   HAL_SPI_Transmit(&spiHal, spiBuffer, 4, 10); }
 
 #endif

@@ -115,6 +115,7 @@ setColorDepth	KEYWORD2
 getColorDepth	KEYWORD2
 deleteSprite	KEYWORD2
 pushRotated	KEYWORD2
+pushRotatedHP	KEYWORD2
 rotatedBounds	KEYWORD2
 setPivot	KEYWORD2
 getPivotX	KEYWORD2

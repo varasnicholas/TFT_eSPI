@@ -101,8 +101,16 @@
   #define CS_H // No macro allocated so it generates no code
 #else
   #if defined (TFT_PARALLEL_8_BIT)
-    #define CS_L // The TFT CS is set permanently low during init()
-    #define CS_H
+    #if TFT_CS >= 32
+        #define CS_L GPIO.out1_w1tc.val = (1 << (TFT_CS - 32))
+        #define CS_H GPIO.out1_w1ts.val = (1 << (TFT_CS - 32))
+    #elif TFT_CS >= 0
+        #define CS_L GPIO.out_w1tc = (1 << TFT_CS)
+        #define CS_H GPIO.out_w1ts = (1 << TFT_CS)
+    #else
+      #define CS_L
+      #define CS_H
+    #endif
   #else
     #if TFT_CS >= 32
       #ifdef RPI_ILI9486_DRIVER  // RPi display needs a slower CS change
@@ -188,38 +196,38 @@
   #define set_mask(C) xset_mask[C] // 63fps Sprite rendering test 33% faster, graphicstest only 1.8% faster than shifting in real time
 
   // Real-time shifting alternative to above to save 1KByte RAM, 47 fps Sprite rendering test
-  /*#define set_mask(C) ((C&0x80)>>7)<<TFT_D7 | ((C&0x40)>>6)<<TFT_D6 | ((C&0x20)>>5)<<TFT_D5 | ((C&0x10)>>4)<<TFT_D4 | \
-                        ((C&0x08)>>3)<<TFT_D3 | ((C&0x04)>>2)<<TFT_D2 | ((C&0x02)>>1)<<TFT_D1 | ((C&0x01)>>0)<<TFT_D0
+  /*#define set_mask(C) (((C)&0x80)>>7)<<TFT_D7 | (((C)&0x40)>>6)<<TFT_D6 | (((C)&0x20)>>5)<<TFT_D5 | (((C)&0x10)>>4)<<TFT_D4 | \
+                        (((C)&0x08)>>3)<<TFT_D3 | (((C)&0x04)>>2)<<TFT_D2 | (((C)&0x02)>>1)<<TFT_D1 | (((C)&0x01)>>0)<<TFT_D0
   //*/
 
   // Write 8 bits to TFT
-  #define tft_Write_8(C)  GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t)C); WR_H
+  #define tft_Write_8(C)  GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t)(C)); WR_H
 
   // Write 16 bits to TFT
-  #define tft_Write_16(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t)(C >> 8)); WR_H; \
-                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t)(C >> 0)); WR_H
+  #define tft_Write_16(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t)((C) >> 8)); WR_H; \
+                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t)((C) >> 0)); WR_H
 
   // 16 bit write with swapped bytes
-  #define tft_Write_16S(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 0)); WR_H; \
-                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 8)); WR_H
+  #define tft_Write_16S(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 0)); WR_H; \
+                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 8)); WR_H
 
   // Write 32 bits to TFT
-  #define tft_Write_32(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 24)); WR_H; \
-                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 16)); WR_H; \
-                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >>  8)); WR_H; \
-                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >>  0)); WR_H
+  #define tft_Write_32(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 24)); WR_H; \
+                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 16)); WR_H; \
+                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >>  8)); WR_H; \
+                          GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >>  0)); WR_H
 
   // Write two concatenated 16 bit values to TFT
-  #define tft_Write_32C(C,D) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 8)); WR_H; \
-                             GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 0)); WR_H; \
-                             GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (D >> 8)); WR_H; \
-                             GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (D >> 0)); WR_H
+  #define tft_Write_32C(C,D) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 8)); WR_H; \
+                             GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 0)); WR_H; \
+                             GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((D) >> 8)); WR_H; \
+                             GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((D) >> 0)); WR_H
 
   // Write 16 bit value twice to TFT - used by drawPixel()
-  #define tft_Write_32D(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 8)); WR_H; \
-                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 0)); WR_H; \
-                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 8)); WR_H; \
-                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) (C >> 0)); WR_H
+  #define tft_Write_32D(C) GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 8)); WR_H; \
+                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 0)); WR_H; \
+                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 8)); WR_H; \
+                           GPIO.out_w1tc = clr_mask; GPIO.out_w1ts = set_mask((uint8_t) ((C) >> 0)); WR_H
 
    // Read pin
   #ifdef TFT_RD
@@ -238,23 +246,23 @@
   #define tft_Write_8(C)   spi.transfer(C)
 
   // Convert 16 bit colour to 18 bit and write in 3 bytes
-  #define tft_Write_16(C)  spi.transfer((C & 0xF800)>>8); \
-                           spi.transfer((C & 0x07E0)>>3); \
-                           spi.transfer((C & 0x001F)<<3)
+  #define tft_Write_16(C)  spi.transfer(((C) & 0xF800)>>8); \
+                           spi.transfer(((C) & 0x07E0)>>3); \
+                           spi.transfer(((C) & 0x001F)<<3)
 
   // Convert swapped byte 16 bit colour to 18 bit and write in 3 bytes
-  #define tft_Write_16S(C) spi.transfer(C & 0xF8); \
-                           spi.transfer((C & 0xE000)>>11 | (C & 0x07)<<5); \
-                           spi.transfer((C & 0x1F00)>>5)
+  #define tft_Write_16S(C) spi.transfer((C) & 0xF8); \
+                           spi.transfer(((C) & 0xE000)>>11 | ((C) & 0x07)<<5); \
+                           spi.transfer(((C) & 0x1F00)>>5)
 
   // Write 32 bits to TFT
   #define tft_Write_32(C)  spi.write32(C)
 
   // Write two concatenated 16 bit values to TFT
-  #define tft_Write_32C(C,D) spi.write32(C<<16 | D)
+  #define tft_Write_32C(C,D) spi.write32((C)<<16 | (D))
 
   // Write 16 bit value twice to TFT
-  #define tft_Write_32D(C)  spi.write32(C<<16 | C)
+  #define tft_Write_32D(C)  spi.write32((C)<<16 | (C))
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Macros to write commands/pixel colour data to an Raspberry Pi TFT
@@ -270,10 +278,10 @@
   while (READ_PERI_REG(SPI_CMD_REG(SPI_PORT))&SPI_USR);
 
   // Write 8 bits
-  #define tft_Write_8(C) TFT_WRITE_BITS(C<<8, 16)
+  #define tft_Write_8(C) TFT_WRITE_BITS((C)<<8, 16)
 
   // Write 16 bits with corrected endianess for 16 bit colours
-  #define tft_Write_16(C) TFT_WRITE_BITS(C<<8 | C>>8, 16)
+  #define tft_Write_16(C) TFT_WRITE_BITS((C)<<8 | (C)>>8, 16)
 
   // Write 16 bits
   #define tft_Write_16S(C) TFT_WRITE_BITS(C, 16)
@@ -282,8 +290,8 @@
   #define tft_Write_32(C) TFT_WRITE_BITS(C, 32)
 
   // Write two address coordinates
-  #define tft_Write_32C(C,D)  TFT_WRITE_BITS(C<<24 | C, 32); \
-                              TFT_WRITE_BITS(D<<24 | D, 32)
+  #define tft_Write_32C(C,D)  TFT_WRITE_BITS((C)<<24 | (C), 32); \
+                              TFT_WRITE_BITS((D)<<24 | (D), 32)
 
   // Write same value twice
   #define tft_Write_32D(C) tft_Write_32C(C,C)
@@ -305,7 +313,7 @@
   #define tft_Write_8(C) TFT_WRITE_BITS(C, 8)
 
   // Write 16 bits with corrected endianess for 16 bit colours
-  #define tft_Write_16(C) TFT_WRITE_BITS(C<<8 | C>>8, 16)
+  #define tft_Write_16(C) TFT_WRITE_BITS((C)<<8 | (C)>>8, 16)
 
   // Write 16 bits
   #define tft_Write_16S(C) TFT_WRITE_BITS(C, 16)
@@ -314,10 +322,10 @@
   #define tft_Write_32(C) TFT_WRITE_BITS(C, 32)
 
   // Write two address coordinates
-  #define tft_Write_32C(C,D)  TFT_WRITE_BITS((uint16_t)(D<<8 | D>>8)<<16 | (uint16_t)(C<<8 | C>>8), 32)
+  #define tft_Write_32C(C,D)  TFT_WRITE_BITS((uint16_t)((D)<<8 | (D)>>8)<<16 | (uint16_t)((C)<<8 | (C)>>8), 32)
 
   // Write same value twice
-  #define tft_Write_32D(C) TFT_WRITE_BITS((uint16_t)(C<<8 | C>>8)<<16 | (uint16_t)(C<<8 | C>>8), 32)
+  #define tft_Write_32D(C) TFT_WRITE_BITS((uint16_t)((C)<<8 | (C)>>8)<<16 | (uint16_t)((C)<<8 | (C)>>8), 32)
 
 #endif
 

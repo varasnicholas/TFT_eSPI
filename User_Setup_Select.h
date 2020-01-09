@@ -1,6 +1,7 @@
 // My specials for STM32 test branch
 
-#include <User_Setups/Setup_STM32_ILI9341.h>            // Setup for Nucleo board
+#include <User_Setups/Setup_STM32F103_ILI9341.h>        // Setup for Blue Pill
+//#include <User_Setups/Setup_STM32_ILI9341.h>            // Setup for Nucleo board
 //#include <User_Setups/Setup_STM32_ILI9341_Parallel.h> // Setup for Nucleo board and parallel display
 
 
