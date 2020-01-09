@@ -9,6 +9,7 @@ Summary:
 1. Added support for STM32 boards with SPI or 8 bit parallel displays
 2. Added STM32 targetted optimised drivers
 3. Added DMA for STM32F2xx/4xx/7xx when used with SPI displays
+4. Added DMA for STM32F1xx and "Blue Pill" when used with SPI displays
 
 Testing of the updates has been performed with STM32F446RE and STM32F767ZI Nucleo boards. Operation with other STM32 boards is not guaranteed.
 
